@@ -1,0 +1,29 @@
+{
+  "name": "ai-chatbot-server",
+  "version": "1.0.0",
+  "description": "Production Node.js Express backend for Multi-Provider AI Chatbot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@botpress/client": "^2.5.0",
+    "@huggingface/inference": "^4.13.30",
+    "@langchain/community": "^1.1.29",
+    "@langchain/core": "^1.2.11",
+    "@langchain/openai": "^1.5.13",
+    "@langchain/textsplitters": "^1.0.1",
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "langchain": "^1.5.11",
+    "multer": "^2.4.0",
+    "mysql2": "^3.12.0",
+    "pdf-parse": "^2.4.5"
+  }
+}
