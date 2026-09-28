@@ -8,6 +8,7 @@ const db = require('./config/database');
 const chatRoutes = require('./routes/chatRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const providerRoutes = require('./routes/providerRoutes');
+const langchainRoutes = require('./routes/langchainRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -24,6 +25,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., mobile apps, curl, server-to-server)
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -84,6 +86,7 @@ app.get('/api/health', async (req, res) => {
       openrouter: Boolean(config.providers.openrouter.apiKey),
       huggingface: Boolean(config.providers.huggingface.apiKey),
       botpress: Boolean(config.providers.botpress.botId && config.providers.botpress.apiKey),
+      langchain: true,
     },
   });
 });
@@ -92,7 +95,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/chat', chatRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/providers', providerRoutes);
-
+app.use('/api/langchain', langchainRoutes);
 
 // 404 Route Handler
 app.use('*', (req, res) => {
@@ -106,4 +109,3 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 module.exports = app;
-

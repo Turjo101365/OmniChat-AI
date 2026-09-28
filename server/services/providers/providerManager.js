@@ -53,13 +53,46 @@ class ProviderManager {
     return await provider.getModels();
   }
 
+  /**
+   * Executes message sending with support for both:
+   * 1. DIRECT mode (direct provider SDK/HTTP calls)
+   * 2. LANGCHAIN mode (LangChain Runnable chains, prompt templates & RAG)
+   */
   async sendMessage({
     provider,
     model,
     messages = [],
     conversationId,
     externalConversationId,
+    mode = 'direct',
+    task = 'chat',
+    documentId = null,
   }) {
+    if (mode === 'langchain') {
+      const LangChainService = require('../langchain/langchainService');
+      const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
+      const messageContent = lastUserMessage?.content || '';
+
+      const lcResult = await LangChainService.processChat({
+        conversationId,
+        provider,
+        model,
+        message: messageContent,
+        task,
+        documentId,
+      });
+
+      return {
+        provider: `langchain (${provider})`,
+        model: lcResult.model,
+        content: lcResult.assistantMessage.content,
+        sources: lcResult.sources || [],
+        tokenUsage: lcResult.assistantMessage.token_usage,
+        finishReason: 'stop',
+      };
+    }
+
+    // Default: Direct execution path
     const activeProvider = this.getProvider(provider);
     return await activeProvider.sendMessage({
       model,
@@ -71,4 +104,3 @@ class ProviderManager {
 }
 
 module.exports = new ProviderManager();
-
