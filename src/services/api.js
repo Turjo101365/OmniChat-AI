@@ -41,11 +41,51 @@ export const apiService = {
   searchConversations: (q) => api.get('/conversations/search', { params: { q } }),
 
   // Chat Endpoints
-  sendChatMessage: ({ provider, model, conversationId, message }) =>
-    api.post('/chat', { provider, model, conversationId, message }),
+  sendChatMessage: ({ provider, model, conversationId, message, mode = 'direct' }) =>
+    api.post('/chat', { provider, model, conversationId, message, mode }),
 
   sendProviderChat: (provider, { model, conversationId, message }) =>
     api.post(`/chat/${provider}`, { model, conversationId, message }),
+
+  // LangChain Chat & RAG Endpoints
+  sendLangChainChat: ({
+    provider,
+    model,
+    conversationId,
+    message,
+    task = 'chat',
+    documentId = null,
+    customSystemPrompt,
+  }) =>
+    api.post('/langchain/chat', {
+      provider,
+      model,
+      conversationId,
+      message,
+      task,
+      documentId,
+      customSystemPrompt,
+    }),
+
+  uploadDocument: (formData) =>
+    api.post('/langchain/documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  getDocuments: (conversationId) =>
+    api.get('/langchain/documents', { params: { conversationId } }),
+
+  deleteDocument: (id) =>
+    api.delete(`/langchain/documents/${id}`),
+
+  queryRag: ({ provider, model, documentId, conversationId, question }) =>
+    api.post('/langchain/rag/query', {
+      provider,
+      model,
+      documentId,
+      conversationId,
+      question,
+    }),
 };
 
 export default apiService;

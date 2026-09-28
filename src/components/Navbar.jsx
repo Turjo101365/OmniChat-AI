@@ -58,6 +58,19 @@ export default function Navbar() {
           <span>{currentBadge.icon} {currentBadge.label}</span>
         </div>
 
+        {/* LangSmith Tracing Badge */}
+        <a
+          href="https://smith.langchain.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="LangSmith Observability & Tracing (Project: OmniChat AI)"
+          className="hidden sm:flex items-center gap-1.5 text-xs text-orange-700 bg-orange-50 hover:bg-orange-100/80 px-2.5 py-1 rounded-lg border border-orange-200 transition-colors shadow-2xs"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+          <span className="font-medium">LangSmith</span>
+          <span className="text-[10px] text-orange-600 bg-orange-100 px-1 py-0.2 rounded font-mono">Traced</span>
+        </a>
+
         {/* Database Status Link */}
         <a
           href="http://localhost:8090"
@@ -73,3 +86,4 @@ export default function Navbar() {
     </header>
   );
 }
+

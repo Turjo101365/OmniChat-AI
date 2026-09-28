@@ -3,8 +3,9 @@ const config = require('../../config/env');
 const { parseOpenRouterResponse, sanitizeErrorMessage } = require('../../utils/responseParser');
 
 const DEFAULT_MODELS = [
-  { id: 'nex-agi/nex-n2.5-mini:free', name: 'Nex AGI: Nex N2.5 Mini (Free)', context_length: 32768, description: 'Fast, lightweight free reasoning model' },
-  { id: 'nex-agi/nex-n2.5-pro:free', name: 'Nex AGI: Nex N2.5 Pro (Free)', context_length: 65536, description: 'High-capability free instruction and reasoning model' },
+  { id: 'liquid/lfm-2.5-2.6b:free', name: 'Liquid: LFM 2.5 2.6B (Free)', context_length: 32768, description: 'Fast, compact, high-efficiency free reasoning model' },
+  { id: 'qwen/qwen3.8-27b:free', name: 'Qwen: Qwen 3.8 27B (Free)', context_length: 65536, description: 'Powerful open multilingual model' },
+  { id: 'google/gemma-4-31b-it:free', name: 'Google: Gemma 4 31B IT (Free)', context_length: 65536, description: 'High-capability Google open instruction model' },
   { id: 'openai/gpt-4o', name: 'OpenAI: GPT-4o', context_length: 128000, description: 'Flagship high-intelligence multimodal model for complex reasoning' },
   { id: 'openai/gpt-4o-mini', name: 'OpenAI: GPT-4o Mini', context_length: 128000, description: 'Fast, cost-efficient model for focused lightweight tasks' },
   { id: 'anthropic/claude-3.5-haiku', name: 'Anthropic: Claude 3.5 Haiku', context_length: 200000, description: 'Rapid, ultra-responsive intelligent assistant' },

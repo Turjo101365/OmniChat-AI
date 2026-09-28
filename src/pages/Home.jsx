@@ -82,7 +82,29 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* LangGraph Agent Card */}
+          <div className="p-6 rounded-2xl border border-gray-200/90 bg-white hover:border-purple-300 hover:shadow-sm transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 text-2xl">
+                  🕸️
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+                  Active & Traced
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">LangGraph Agent</h3>
+              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                Stateful multi-node agent with intelligent routing, RAG retrieval, multi-step reasoning, and full end-to-end tracing in LangSmith ("OmniChat AI").
+              </p>
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <span className="text-[11px] font-mono text-gray-400">Endpoint: /api/langgraph/chat</span>
+            </div>
+          </div>
+
           {/* OpenRouter Card */}
           <div className="p-6 rounded-2xl border border-gray-200/90 bg-white hover:border-emerald-300 hover:shadow-sm transition-all flex flex-col justify-between">
             <div>
@@ -167,6 +189,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+
       </section>
 
       {/* Feature Section */}
@@ -308,10 +331,17 @@ export default function Home() {
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-gray-200 shadow-2xs">
               🐬 MySQL 8 (Docker)
             </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-purple-200 text-purple-700 shadow-2xs">
+              🕸️ LangGraph
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-orange-200 text-orange-700 shadow-2xs">
+              🔍 LangSmith Tracing
+            </span>
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border border-gray-200 shadow-2xs">
               📊 phpMyAdmin
             </span>
           </div>
+
         </div>
       </section>
 

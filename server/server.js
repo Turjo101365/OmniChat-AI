@@ -7,8 +7,15 @@ const PORT = config.port || 5002;
 async function startServer() {
   try {
     console.log('[Server] Connecting to database and verifying schema...');
-    await db.initializeDatabase();
-    console.log('[Server] Database initialized successfully.');
+    try {
+      const dbReady = await db.initializeDatabase();
+      if (dbReady) {
+        console.log('[Server] Database initialized successfully.');
+      }
+    } catch (dbErr) {
+      console.warn('[Server Warning] Database initialization deferred:', dbErr.message);
+    }
+
 
     const server = app.listen(PORT, () => {
       console.log(`\n🚀 Multi-Provider AI Chatbot Backend running!`);

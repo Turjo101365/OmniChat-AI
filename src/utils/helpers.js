@@ -17,7 +17,17 @@ export function formatDate(dateString) {
 
 export function getProviderBadgeInfo(provider) {
   const p = (provider || '').toLowerCase();
+  if (p.includes('langgraph')) {
+    return {
+      label: 'LangGraph Agent',
+      icon: '🕸️',
+      bgColor: 'bg-purple-50 text-purple-700 border-purple-200',
+      dotColor: 'bg-purple-500',
+    };
+  }
+
   switch (p) {
+
     case 'openrouter':
       return {
         label: 'OpenRouter',
@@ -39,6 +49,14 @@ export function getProviderBadgeInfo(provider) {
         bgColor: 'bg-blue-50 text-blue-700 border-blue-200',
         dotColor: 'bg-blue-500',
       };
+    case 'langgraph':
+      return {
+        label: 'LangGraph Agent',
+        icon: '🕸️',
+        bgColor: 'bg-purple-50 text-purple-700 border-purple-200',
+        dotColor: 'bg-purple-500',
+      };
+
     default:
       return {
         label: provider || 'AI',

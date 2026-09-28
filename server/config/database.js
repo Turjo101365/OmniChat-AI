@@ -5,7 +5,7 @@ let pool = null;
 
 function getPool() {
   if (!pool) {
-    pool = mysql.createPool({
+    const poolConfig = {
       host: config.db.host,
       port: config.db.port,
       user: config.db.user,
@@ -16,7 +16,11 @@ function getPool() {
       queueLimit: 0,
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,
-    });
+    };
+    if (config.db.ssl) {
+      poolConfig.ssl = config.db.ssl;
+    }
+    pool = mysql.createPool(poolConfig);
   }
   return pool;
 }
@@ -227,17 +231,26 @@ async function query(sql, params = []) {
 
 async function initializeDatabase() {
   try {
-    // First verify or create DB connection with root
-    const tempConnection = await mysql.createConnection({
-      host: config.db.host,
-      port: config.db.port,
-      user: config.db.user,
-      password: config.db.password,
-      connectTimeout: 5000,
-    });
+    // Attempt database creation if permission allows (e.g., local Docker), ignore if cloud managed DB
+    try {
+      const tempConfig = {
+        host: config.db.host,
+        port: config.db.port,
+        user: config.db.user,
+        password: config.db.password,
+        connectTimeout: 5000,
+      };
+      if (config.db.ssl) tempConfig.ssl = config.db.ssl;
 
-    await tempConnection.query(`CREATE DATABASE IF NOT EXISTS \`${config.db.name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-    await tempConnection.end();
+      const tempConnection = await mysql.createConnection(tempConfig);
+      await tempConnection.query(
+        `CREATE DATABASE IF NOT EXISTS \`${config.db.name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+      );
+      await tempConnection.end();
+    } catch (createErr) {
+      // Ignored for cloud databases where database already exists and user lacks CREATE DATABASE privilege
+    }
+
 
     const p = getPool();
     const connection = await p.getConnection();

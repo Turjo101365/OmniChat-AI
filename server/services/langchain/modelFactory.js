@@ -66,10 +66,29 @@ class ModelFactory {
       });
     }
 
+    if (normProvider === 'anthropic') {
+      const { ChatAnthropic } = require('@langchain/anthropic');
+      const apiKey = config.providers.anthropic?.apiKey;
+      if (!apiKey) {
+        throw new Error('Anthropic API key is not configured. Please set ANTHROPIC_API_KEY in .env.');
+      }
+
+      const selectedModel = model || config.providers.anthropic?.defaultModel || 'claude-3-5-sonnet-20241022';
+
+      return new ChatAnthropic({
+        modelName: selectedModel,
+        anthropicApiKey: apiKey,
+        temperature,
+        maxTokens,
+        streaming,
+      });
+    }
+
     throw new Error(
-      `Unsupported provider for LangChain execution: "${provider}". Supported: openrouter, huggingface.`
+      `Unsupported provider for LangChain execution: "${provider}". Supported: openrouter, huggingface, anthropic.`
     );
   }
 }
+
 
 module.exports = ModelFactory;

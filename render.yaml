@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: omnichat-ai
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://omnichat-ai.onrender.com
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: BOTPRESS_BOT_ID
+        sync: false
+      - key: BOTPRESS_API_KEY
+        sync: false
+      - key: BOTPRESS_WORKSPACE_ID
+        sync: false
+      - key: LANGSMITH_TRACING
+        value: "true"
+      - key: LANGSMITH_PROJECT
+        value: "OmniChat AI"
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_NAME
+        value: "ai_chatbot"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

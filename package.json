@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173",
-    "build": "vite build",
-    "start": "node server/server.js",
+    "build": "npm install --prefix server && vite build",
     "render-build": "npm install && npm run build && cd server && npm install",
+    "start": "node server/server.js",
+
     "preview": "vite preview",
     "server": "cd server && npm run dev",
     "dev:all": "npx concurrently \"npm run dev\" \"npm run server\""
   },
+
+
   "dependencies": {
     "axios": "^1.7.9",
     "clsx": "^2.1.1",

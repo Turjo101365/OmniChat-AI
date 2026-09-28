@@ -1,17 +1,65 @@
-const { MemoryVectorStore } = require('@langchain/core/vectorstores');
 const { Document } = require('@langchain/core/documents');
 const EmbeddingService = require('./embeddingService');
 const DocumentService = require('./documentService');
 
+let MemoryVectorStore = null;
+try {
+  const classic = require('@langchain/classic/vectorstores/memory');
+  MemoryVectorStore = classic.MemoryVectorStore;
+} catch (e) {
+  // fallback to custom lightweight vector store below
+}
+
+/**
+ * Robust In-Memory Vector Store with Cosine Similarity Search
+ */
+class LocalVectorStore {
+  constructor(embeddings) {
+    this.embeddings = embeddings;
+    this.documents = [];
+    this.vectors = [];
+  }
+
+  async addDocuments(docs) {
+    for (const doc of docs) {
+      const vec = await this.embeddings.embedQuery(doc.pageContent);
+      this.documents.push(doc);
+      this.vectors.push(vec);
+    }
+  }
+
+  cosineSimilarity(a, b) {
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < a.length; i++) {
+      dot += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    const denom = Math.sqrt(normA) * Math.sqrt(normB);
+    return denom === 0 ? 0 : dot / denom;
+  }
+
+  async similaritySearch(query, k = 4) {
+    if (this.documents.length === 0) return [];
+    const queryVec = await this.embeddings.embedQuery(query);
+
+    const scored = this.documents.map((doc, idx) => ({
+      doc,
+      score: this.cosineSimilarity(queryVec, this.vectors[idx]),
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, k).map((s) => s.doc);
+  }
+}
+
 class RetrieverService {
   constructor() {
-    // In-memory cache of vector stores by documentId or conversationId
     this.vectorStoreCache = new Map();
   }
 
-  /**
-   * Initializes or loads a vector store populated with chunks from MySQL
-   */
   async getVectorStoreForDocument(documentId) {
     const cacheKey = `doc_${documentId}`;
     if (this.vectorStoreCache.has(cacheKey)) {
@@ -24,7 +72,17 @@ class RetrieverService {
     }
 
     const embeddings = EmbeddingService.createEmbeddingModel();
-    const vectorStore = new MemoryVectorStore(embeddings);
+    let vectorStore;
+
+    if (MemoryVectorStore) {
+      try {
+        vectorStore = new MemoryVectorStore(embeddings);
+      } catch (e) {
+        vectorStore = new LocalVectorStore(embeddings);
+      }
+    } else {
+      vectorStore = new LocalVectorStore(embeddings);
+    }
 
     const langchainDocs = chunks.map(
       (c) =>
@@ -39,9 +97,6 @@ class RetrieverService {
     return vectorStore;
   }
 
-  /**
-   * Performs vector similarity search with top-K results
-   */
   async searchSimilarChunks({ documentId, query, k = 4 }) {
     const vectorStore = await this.getVectorStoreForDocument(documentId);
     const results = await vectorStore.similaritySearch(query, k);
@@ -55,9 +110,6 @@ class RetrieverService {
     }));
   }
 
-  /**
-   * Clears cache for a document on deletion
-   */
   clearCache(documentId) {
     this.vectorStoreCache.delete(`doc_${documentId}`);
   }

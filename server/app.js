@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 const config = require('./config/env');
 const db = require('./config/database');
@@ -9,6 +11,8 @@ const chatRoutes = require('./routes/chatRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const providerRoutes = require('./routes/providerRoutes');
 const langchainRoutes = require('./routes/langchainRoutes');
+const langsmithRoutes = require('./routes/langsmithRoutes');
+const langgraphRoutes = require('./routes/langgraphRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -87,6 +91,8 @@ app.get('/api/health', async (req, res) => {
       huggingface: Boolean(config.providers.huggingface.apiKey),
       botpress: Boolean(config.providers.botpress.botId && config.providers.botpress.apiKey),
       langchain: true,
+      langgraph: true,
+      langsmith: Boolean(config.langsmith.apiKey),
     },
   });
 });
@@ -96,30 +102,30 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/langchain', langchainRoutes);
+app.use('/api/langsmith', langsmithRoutes);
+app.use('/api/langgraph', langgraphRoutes);
 
-// Static Assets & Frontend Serving (Production & Render)
-const path = require('path');
+// Serve static frontend assets if dist folder exists (Render / Production single-service deployment)
 const distPath = path.resolve(__dirname, '../dist');
-app.use(express.static(distPath));
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  // Client-side SPA routing fallback (for react-router-dom)
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 // 404 Route Handler for unmatched API endpoints
-app.use('/api/*', (req, res) => {
+app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
     error: `API endpoint not found: ${req.method} ${req.originalUrl}`,
   });
 });
 
-// SPA Client-Side Routing Fallback (serve index.html for non-API routes)
-app.get('*', (req, res, next) => {
-  if (req.originalUrl.startsWith('/api')) {
-    return next();
-  }
-  const indexPath = path.join(distPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) next();
-  });
-});
 
 // Centralized error handling
 app.use(errorHandler);

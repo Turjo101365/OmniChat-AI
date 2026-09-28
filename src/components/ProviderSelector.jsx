@@ -7,7 +7,14 @@ export default function ProviderSelector() {
 
   const currentProvider = providers.find((p) => p.id === selectedProvider) || {
     id: selectedProvider,
-    name: selectedProvider === 'openrouter' ? 'OpenRouter' : selectedProvider === 'huggingface' ? 'Hugging Face' : 'Botpress',
+    name:
+      selectedProvider === 'langgraph'
+        ? 'LangGraph Agent'
+        : selectedProvider === 'openrouter'
+        ? 'OpenRouter'
+        : selectedProvider === 'huggingface'
+        ? 'Hugging Face'
+        : 'Botpress',
     configured: true,
   };
 
@@ -30,12 +37,14 @@ export default function ProviderSelector() {
             ))
           ) : (
             <>
+              <option value="langgraph">LangGraph Agent ●</option>
               <option value="openrouter">OpenRouter ●</option>
               <option value="huggingface">Hugging Face ○</option>
               <option value="botpress">Botpress ○</option>
             </>
           )}
         </select>
+
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
           <ChevronDown className="w-3.5 h-3.5" />
         </div>

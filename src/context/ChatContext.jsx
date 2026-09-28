@@ -10,8 +10,15 @@ export function ChatProvider({ children }) {
 
   const [providers, setProviders] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState('openrouter');
-  const [selectedModel, setSelectedModel] = useState('nex-agi/nex-n2.5-mini:free');
+  const [selectedModel, setSelectedModel] = useState('liquid/lfm-2.5-2.6b:free');
   const [availableModels, setAvailableModels] = useState([]);
+
+  // LangChain Execution Mode & RAG State
+  const [executionMode, setExecutionMode] = useState('direct'); // 'direct' | 'langchain'
+  const [selectedTask, setSelectedTask] = useState('chat'); // 'chat' | 'rag' | 'summarization'
+  const [documents, setDocuments] = useState([]);
+  const [activeDocument, setActiveDocument] = useState(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(false);
@@ -37,7 +44,6 @@ export function ChatProvider({ children }) {
       const res = await apiService.getProviderModels(provider);
       if (res.success && res.data) {
         setAvailableModels(res.data);
-        // Default to first model if current selected model not in list
         const exists = res.data.some((m) => m.id === selectedModel);
         if (!exists && res.data.length > 0) {
           setSelectedModel(res.data[0].id);
@@ -66,7 +72,22 @@ export function ChatProvider({ children }) {
     }
   }, []);
 
-  // 4. Load messages for specific conversation
+  // 4. Fetch uploaded documents
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const res = await apiService.getDocuments(currentConversationId);
+      if (res.success && res.data) {
+        setDocuments(res.data);
+        if (!activeDocument && res.data.length > 0) {
+          setActiveDocument(res.data[0]);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch documents:', err.message);
+    }
+  }, [currentConversationId, activeDocument]);
+
+  // 5. Load messages for specific conversation
   const loadMessages = useCallback(async (convId) => {
     if (!convId) {
       setMessages([]);
@@ -86,7 +107,8 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     fetchProviders();
     fetchConversations();
-  }, [fetchProviders, fetchConversations]);
+    fetchDocuments();
+  }, [fetchProviders, fetchConversations, fetchDocuments]);
 
   // Update models when provider changes
   useEffect(() => {
@@ -100,20 +122,65 @@ export function ChatProvider({ children }) {
       setCurrentConversationId(id);
       const target = conversations.find((c) => c.id === id);
       if (target) {
-        if (target.provider) setSelectedProvider(target.provider);
+        if (target.provider && target.provider.includes('huggingface')) setSelectedProvider('huggingface');
+        else if (target.provider && target.provider.includes('botpress')) setSelectedProvider('botpress');
+        else setSelectedProvider('openrouter');
+
         if (target.model) setSelectedModel(target.model);
+        if (target.provider && target.provider.includes('langchain')) {
+          setExecutionMode('langchain');
+        }
       }
       await loadMessages(id);
     },
     [conversations, loadMessages]
   );
 
-  // Start a fresh new chat
+  // Start fresh new chat
   const startNewChat = useCallback(() => {
     setCurrentConversationId(null);
     setMessages([]);
     setError(null);
   }, []);
+
+  // Document upload handler
+  const uploadDocumentFile = async (file) => {
+    if (!file) return;
+    setUploadingDocument(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      if (currentConversationId) {
+        formData.append('conversationId', currentConversationId);
+      }
+
+      const res = await apiService.uploadDocument(formData);
+      if (res.success) {
+        await fetchDocuments();
+        setActiveDocument(res.data);
+        return res.data;
+      }
+    } catch (err) {
+      setError(`Document upload failed: ${err.message}`);
+      throw err;
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
+
+  // Delete document
+  const deleteDocumentFile = async (id) => {
+    try {
+      await apiService.deleteDocument(id);
+      setDocuments((prev) => prev.filter((d) => d.id !== id));
+      if (activeDocument?.id === id) {
+        setActiveDocument(null);
+      }
+    } catch (err) {
+      setError(`Failed to delete document: ${err.message}`);
+    }
+  };
 
   // Send message
   const sendMessage = async (content) => {
@@ -122,28 +189,41 @@ export function ChatProvider({ children }) {
     setError(null);
     setLoading(true);
 
-    // Optimistic user message update
     const tempUserMsg = {
       id: `temp-${Date.now()}`,
       conversation_id: currentConversationId,
       role: 'user',
       content: content.trim(),
-      provider: selectedProvider,
+      provider: executionMode === 'langchain' ? `langchain (${selectedProvider})` : selectedProvider,
       model: selectedModel,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const response = await apiService.sendChatMessage({
-        provider: selectedProvider,
-        model: selectedModel,
-        conversationId: currentConversationId,
-        message: content.trim(),
-      });
+      let response;
+
+      if (executionMode === 'langchain') {
+        response = await apiService.sendLangChainChat({
+          provider: selectedProvider,
+          model: selectedModel,
+          conversationId: currentConversationId,
+          message: content.trim(),
+          task: selectedTask,
+          documentId: activeDocument?.id || null,
+        });
+      } else {
+        response = await apiService.sendChatMessage({
+          provider: selectedProvider,
+          model: selectedModel,
+          conversationId: currentConversationId,
+          message: content.trim(),
+          mode: 'direct',
+        });
+      }
 
       if (response.success && response.data) {
-        const { conversationId, userMessage, assistantMessage } = response.data;
+        const { conversationId, userMessage, assistantMessage, sources } = response.data;
 
         // If this was a new conversation, update currentConversationId
         if (!currentConversationId && conversationId) {
@@ -151,15 +231,19 @@ export function ChatProvider({ children }) {
           fetchConversations();
         }
 
-        // Replace temp message with persisted message and append assistant message
+        // Attach source citations if present
+        const finalAssistantMsg = {
+          ...assistantMessage,
+          sources: sources || assistantMessage?.token_usage?.sources || [],
+        };
+
         setMessages((prev) => {
           const filtered = prev.filter((m) => m.id !== tempUserMsg.id);
-          return [...filtered, userMessage, assistantMessage];
+          return [...filtered, userMessage, finalAssistantMsg];
         });
       }
     } catch (err) {
       setError(err.message || 'Failed to send message. Please try again.');
-      // Remove optimistic message on failure
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
       setLoading(false);
@@ -170,11 +254,9 @@ export function ChatProvider({ children }) {
   const regenerateLastResponse = async () => {
     if (messages.length === 0 || loading) return;
 
-    // Find the last user message
     const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
     if (!lastUserMsg) return;
 
-    // Pop the last assistant message if exists
     if (messages[messages.length - 1].role === 'assistant') {
       setMessages((prev) => prev.slice(0, -1));
     }
@@ -220,12 +302,22 @@ export function ChatProvider({ children }) {
         selectedProvider,
         selectedModel,
         availableModels,
+        executionMode,
+        selectedTask,
+        documents,
+        activeDocument,
+        uploadingDocument,
         loading,
         modelsLoading,
         conversationsLoading,
         error,
         setSelectedProvider,
         setSelectedModel,
+        setExecutionMode,
+        setSelectedTask,
+        setActiveDocument,
+        uploadDocumentFile,
+        deleteDocumentFile,
         selectConversation,
         startNewChat,
         sendMessage,
@@ -234,6 +326,7 @@ export function ChatProvider({ children }) {
         renameConversation,
         clearError: () => setError(null),
         refreshConversations: fetchConversations,
+        refreshDocuments: fetchDocuments,
       }}
     >
       {children}
