@@ -97,11 +97,27 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/langchain', langchainRoutes);
 
-// 404 Route Handler
-app.use('*', (req, res) => {
+// Static Assets & Frontend Serving (Production & Render)
+const path = require('path');
+const distPath = path.resolve(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// 404 Route Handler for unmatched API endpoints
+app.use('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
     error: `API endpoint not found: ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// SPA Client-Side Routing Fallback (serve index.html for non-API routes)
+app.get('*', (req, res, next) => {
+  if (req.originalUrl.startsWith('/api')) {
+    return next();
+  }
+  const indexPath = path.join(distPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) next();
   });
 });
 
