@@ -5,7 +5,9 @@ const config = require('./config/env');
 const db = require('./config/database');
 
 // Import routes
+const chatRoutes = require('./routes/chatRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
+const providerRoutes = require('./routes/providerRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -50,6 +52,19 @@ const generalLimiter = rateLimit({
 });
 app.use('/api/', generalLimiter);
 
+// Specific Chat Rate Limiter
+const chatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 60,
+  message: {
+    success: false,
+    error: 'Too many chat requests sent in a short period. Please slow down.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/chat', chatLimiter);
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   let dbStatus = 'disconnected';
@@ -65,11 +80,19 @@ app.get('/api/health', async (req, res) => {
     environment: config.env,
     timestamp: new Date().toISOString(),
     database: dbStatus,
+    providers: {
+      openrouter: Boolean(config.providers.openrouter.apiKey),
+      huggingface: Boolean(config.providers.huggingface.apiKey),
+      botpress: Boolean(config.providers.botpress.botId && config.providers.botpress.apiKey),
+    },
   });
 });
 
 // API Routes
+app.use('/api/chat', chatRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/providers', providerRoutes);
+
 
 // 404 Route Handler
 app.use('*', (req, res) => {
