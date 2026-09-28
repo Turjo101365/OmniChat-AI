@@ -8,7 +8,7 @@ class ChatService {
     userId = 1,
     conversationId = null,
     provider = 'openrouter',
-    model = 'openai/gpt-4o',
+    model = null,
     message,
   }) {
     if (!message || typeof message !== 'string' || message.trim() === '') {

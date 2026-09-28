@@ -73,7 +73,7 @@ class OpenRouterProvider {
       throw new Error('OpenRouter API key is not configured. Please set OPENROUTER_API_KEY in .env.');
     }
 
-    const selectedModel = model || config.providers.openrouter.defaultModel || 'nex-agi/nex-n2.5-mini:free';
+    const selectedModel = model || config.providers.openrouter.defaultModel || 'liquid/lfm-2.5-2.6b:free';
 
     const formattedMessages = messages.map((m) => ({
       role: m.role === 'assistant' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
